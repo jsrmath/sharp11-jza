@@ -1,0 +1,35 @@
+{
+  "name": "sharp11-jza",
+  "version": "0.0.0",
+  "description": "A probabilistic automaton model for jazz harmony",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsrmath/sharp11-jza.git"
+  },
+  "keywords": [
+    "sharp11",
+    "jazz",
+    "harmony",
+    "model",
+    "automaton"
+  ],
+  "author": "Julian Rosenblum",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/jsrmath/sharp11-jza/issues"
+  },
+  "homepage": "https://github.com/jsrmath/sharp11-jza#readme",
+  "dependencies": {
+    "jsonfile": "^4.0.0",
+    "sharp11": "^2.0.1",
+    "sharp11-irb": "^1.0.0",
+    "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "mocha": "^4.0.1"
+  }
+}
