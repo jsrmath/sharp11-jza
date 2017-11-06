@@ -106,23 +106,6 @@ var runTests = function (failurePointSymbols, secondaryGroupingIndex, minSection
   if (failurePointSymbols) analyzeFailurePoints(failurePoints, failurePointSymbols, secondaryGroupingIndex);
 };
 
-var trainJzA = function (minSectionSize) {
-  var sections = _.reduce(iRbCorpus.charts, function (sections, j) {
-    return sections.concat(
-      _.chain(j.sectionMeheganListsWithWrapAround())
-        .omit(function (section) {
-          return section.length < (minSectionSize || 2);
-        })
-        .values()
-        .value()
-    );
-  }, []);
-
-  console.log('Training model');
-  jzaAutomaton.train(sections);
-  console.log('Training complete');
-};
-
 var generateSequence = function (start, end) {
   var sequence = jzaAutomaton.generateSequenceFromStartAndEnd(start, end);
   console.log(sequence.getSymbolStateStrings().join(' | '));
@@ -160,7 +143,7 @@ var mostCommonGeneratedSequences = function (start, end, count) {
 // jzaAutomaton = jza.jza();
 
 //// and train it
-// trainJzA();
+// jzaAutomaton.trainCorpusBySectionWithWrapAround(iRbCorpus);
 
 //// or load a saved model
 // jzaAutomaton = jza.import('sample/model.json');

@@ -296,6 +296,7 @@ JzA.prototype.analyze = function (symbols) {
   return stateLists;
 };
 
+// Train the automaton on a given sequence of chords
 JzA.prototype.trainSequence = function (symbols) {
   var pathways = this.getPathways(symbols);
 
@@ -307,8 +308,39 @@ JzA.prototype.trainSequence = function (symbols) {
   });
 };
 
-JzA.prototype.train = function (songs) {
-  _.each(songs, this.trainSequence.bind(this));
+JzA.prototype.trainSequences = function (sequences) {
+  _.each(sequences, this.trainSequence.bind(this));
+};
+
+JzA.prototype.trainCorpusBySection = function (corpus, minSectionSize, withWrapAround) {
+  var sequences = _.reduce(corpus.charts, function (sections, chart) {
+    return sections.concat(
+      _.chain(chart['sectionMeheganLists' + (withWrapAround ? 'WithWrapAround' : '')]())
+        .omit(function (section) {
+          return section.length < (minSectionSize || 2);
+        })
+        .values()
+        .value()
+    );
+  }, []);
+
+  this.trainSequences(sequences);
+};
+
+JzA.prototype.trainCorpusBySectionWithWrapAround = function (corpus, minSectionSize) {
+  return this.trainCorpusBySection(corpus, minSectionSize, true);
+};
+
+JzA.prototype.trainCorpusBySong = function (corpus, withWrapAround) {
+  var sequences = _.map(corpus.charts, function (chart) {
+    return chart['meheganList' + (withWrapAround ? 'WithWrapAround' : '')]();
+  });
+
+  this.trainSequences(sequences);
+};
+
+JzA.prototype.trainCorpusBySongWithWrapAround = function (corpus) {
+  return this.trainCorpusBySong(corpus, true);
 };
 
 var getInitialTransitionByProbabiblity = function (jza, symbol) {

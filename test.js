@@ -147,7 +147,7 @@ describe('JzA', function () {
         ['start2', 'middle2', 'end1']
       ]);
 
-      jza.train([
+      jza.trainSequences([
         ['I', 'IV', 'V'],
         ['I', 'IV', 'I'], 
         ['I', 'V', 'I']
@@ -248,7 +248,7 @@ describe('JzA', function () {
         ['start2', 'middle2', 'end1']
       ]);
 
-      jza.train([['I', 'V', 'I']]);
+      jza.trainSequence(['I', 'V', 'I']);
 
       it('should produce proper counts', function () {
         assert.equal(i_s1.count, 0); // We currently don't keep track of initial transitions
