@@ -1,30 +1,43 @@
-var _ = require('underscore');
-var s11 = require('sharp11');
 var jzaTools = require('../index');
+var s11 = require('sharp11');
+var irb = require('sharp11-irb');
+var fs = require('fs');
+var path = require('path');
+var _ = require('underscore');
 
-var jza = jzaTools.jza();
+var iRbCorpus = s11.corpus.load(irb);
+var jza;
 
-var romanNumerals = ['I', 'bII', 'II', 'bIII', 'III', 'IV', 'bV', 'V', 'bVI', 'VI', 'bVII', 'VII'];
-var qualities = ['m', 'M', 'x', 'ø', 'o', 's'];
+//// Below are examples of how to interact with the automaton and the corpus
+//// Uncomment lines beginning with // to try them out
 
-var numSamples = 5000;
-var sizeDistribution = {"2":258,"3":241,"4":323,"5":81,"6":94,"7":68,"8":445,"9":263,"10":283,"11":215,"12":339,"13":207,"14":241,"15":189,"16":325,"17":150,"18":118,"19":80,"20":71,"21":52,"22":29,"23":39,"24":33,"25":19,"26":9,"27":9,"28":12,"29":9,"30":5,"31":4,"32":12,"33":6,"34":4,"35":3,"38":1,"39":1,"40":2,"41":2};
-var sizeArray = [];
+//// Create a new automaton
+// jza = jzaTools.jza();
 
-_.each(sizeDistribution, function (count, size) {
-  _.each(_.range(count), function () {
-    sizeArray.push(parseInt(size, 10));
-  });
-});
+//// and train it
+// jza.trainCorpusBySectionWithWrapAround(iRbCorpus);
 
-var sampleList = _.map(_.range(numSamples), function () {
-  return _.map(_.range(_.sample(sizeArray)), function () {
-    return s11.mehegan.fromString(_.sample(romanNumerals) + _.sample(qualities));
-  });
-});
+//// or load a saved model
+// jza = jzaTools.import('sample/model.json');
 
-var validSamples = _.filter(sampleList, function (sample) {
-  return jza.validate(sample);
-});
+//// Get probabilities of a particular symbol being used to transition to different states
+//// (in other words, get probabilities of a particular symbol having different chord functions)
+// console.log(jza.getStateProbabilitiesGivenSymbol('VIx'));
 
-console.log(validSamples.length / numSamples);
+//// Get transition probabilities from particular states given a state name regex
+// console.log(jza.getTransitionProbabilitiesGivenStateRegex(/^Subdominant b6/));
+
+//// Generate sequences that start and end with particular symbols
+// _.times(20, function () {
+//   jza.generateSequenceFromStartAndEnd('I', 'I').print();
+// });
+
+//// Find songs in the corpus that contain a given sequence
+// console.log(iRbCorpus.findSongTitlesWithSequence(['bIIIM', 'bVIx', 'V']));
+
+//// Get probability of a particular ngram appearing in the corpus
+//// This example returns P(bVIX,V | bIIIM)
+// console.log(iRbCorpus.getNGramProbability(['bIIIM', 'bVIx', 'V']));
+
+//// Find the most commonly generated sequences (out of n=500) given a start and end symbol
+// console.log(jza.mostCommonGeneratedSequences('I', 'I', 500).join('\n'));
