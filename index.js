@@ -383,6 +383,28 @@ JzA.prototype.getTransitionProbabilitiesGivenStateRegex = function (regex, keyTy
   return makeProbabilitiyObject(transitions, keyFunction);
 };
 
+JzA.prototype.mostCommonGeneratedSequences = function (start, end, count) {
+  var jza = this;
+  return _.chain(count)
+    .range()
+    .map(function () {
+      var sequence = jza.generateSequenceFromStartAndEnd(start, end);
+      return _.pluck(sequence.getChordsCollapsed(), 'name').toString();
+    })
+    .countBy()
+    .pick(function (count) {
+      return count > 1;
+    })
+    .pairs()
+    .sortBy(function (x) {
+      return -x[1];
+    })
+    .map(function (x) {
+      return x[0] + ': ' + x[1];
+    })
+    .value();
+};
+
 module.exports.jza = function (type) {
   var jza = new JzA();
 

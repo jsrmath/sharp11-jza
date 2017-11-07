@@ -7,14 +7,6 @@ var _ = require('underscore');
 
 var iRbCorpus = s11.corpus.load(irb);
 
-var validateSong = function (filename) {
-  var j = jazz.parseFile(path.join(__dirname, '..', 'corpus', filename));
-  var symbols = j.getMeheganList();
-
-  console.log(symbols.toString());
-  return jza.validate(symbols);
-};
-
 var analyzeFailurePoints = function (failurePoints, failurePointSymbols, secondaryGroupingIndex) {
   failurePoints = _.chain(failurePoints)
     .groupBy(function (p) {
@@ -104,36 +96,6 @@ var runTests = function (failurePointSymbols, secondaryGroupingIndex, minSection
   if (failurePointSymbols) analyzeFailurePoints(failurePoints, failurePointSymbols, secondaryGroupingIndex);
 };
 
-var generateSequence = function (start, end) {
-  var sequence = jza.generateSequenceFromStartAndEnd(start, end);
-  console.log(sequence.getSymbolStateStrings().join(' | '));
-  console.log(_.pluck(sequence.getChordsCollapsed(), 'name').toString());
-  console.log();
-};
-
-var mostCommonGeneratedSequences = function (start, end, count) {
-  var counts = _.chain(count)
-    .range()
-    .map(function () {
-      var sequence = jza.generateSequenceFromStartAndEnd(start, end);
-      return _.pluck(sequence.getChordsCollapsed(), 'name').toString();
-    })
-    .countBy()
-    .pick(function (count) {
-      return count > 1;
-    })
-    .pairs()
-    .sortBy(function (x) {
-      return -x[1];
-    })
-    .map(function (x) {
-      return x[0] + ': ' + x[1];
-    })
-    .value()
-    .join('\n');
-  console.log(counts);
-};
-
 //// Below are examples of how to interact with the automaton and the corpus
 //// Uncomment lines beginning with // to try them out
 
@@ -158,7 +120,7 @@ var mostCommonGeneratedSequences = function (start, end, count) {
 
 //// Generate sequences that start and end with particular symbols
 // _.times(20, function () {
-//   generateSequence('I', 'I');
+//   jza.generateSequenceFromStartAndEnd('I', 'I').print();
 // });
 
 //// Find songs in the corpus that contain a given sequence
@@ -169,4 +131,4 @@ var mostCommonGeneratedSequences = function (start, end, count) {
 // console.log(iRbCorpus.getNGramProbability(['bIIIM', 'bVIx', 'V']));
 
 //// Find the most commonly generated sequences (out of n=500) given a start and end symbol
-// mostCommonGeneratedSequences('I', 'I', 500);
+// console.log(jza.mostCommonGeneratedSequences('I', 'I', 500).join('\n'));
