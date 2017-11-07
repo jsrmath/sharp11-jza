@@ -1,4 +1,5 @@
 var jazz = require('./index');
+var jzaComponents = require('./lib/jzaComponents');
 
 var assert = require('assert');
 var _ = require('underscore');

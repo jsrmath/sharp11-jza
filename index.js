@@ -6,115 +6,14 @@ var jsonfile = require('jsonfile');
 var symbolCache = {};
 
 var jzaBuilder = require('./lib/jzaBuilder')(symbolCache);
-
-var JzTransition = function (from, to, symbol, count) {
-  this.from = from;
-  this.to = to;
-  this.symbol = s11.mehegan.asMehegan(symbol);
-  this.count = count || 0;
-};
-
-JzTransition.prototype.getProbability = function () {
-  return this.count / this.from.getTotalCount();
-};
-
-var JzState = function (name, isStart, isEnd) {
-  this.name = name;
-  this.transitions = [];
-
-  // True if state is an acceptable start state
-  this.isStart = !!isStart;
-
-  // True if state is an acceptable end state
-  this.isEnd = !!isEnd;
-};
-
-JzState.prototype.toString = function () {
-  return this.name;
-};
-
-JzState.prototype.addTransition = function (symbol, state, count) {
-  var transition;
-
-  // Don't add edge if equivalent one already exists
-  if (!_.some(this.transitions, function (e) {
-    return e.symbol.eq(symbol, symbolCache) && e.to === state;
-  })) {
-    transition = new JzTransition(this, state, symbol, count);
-    this.transitions.push(transition);
-    return transition;
-  }
-};
-
-JzState.prototype.hasTransition = function (symbol, state) {
-  return _.some(this.transitions, function (e) {
-    return e.symbol.eq(symbol, symbolCache) && e.to === state;
-  });
-};
-
-JzState.prototype.getTransitionsBySymbol = function (symbol) {
-  return _.filter(this.transitions, function (e) {
-    return e.symbol.eq(symbol, symbolCache);
-  });
-};
-
-JzState.prototype.getNextStatesBySymbol = function (symbol) {
-  return _.pluck(this.getTransitionsBySymbol(symbol), 'to');
-};
-
-var getTotalCountForTransitions = function (transitions) {
-  return _.reduce(transitions, function (total, t) {
-    return total + t.count;
-  }, 0);
-};
-
-JzState.prototype.getTotalCount = function () {
-  return getTotalCountForTransitions(this.transitions);
-};
-
-var getTransitionsWithProbabilities = function (transitions) {
-  var totalCount = getTotalCountForTransitions(transitions);
-
-  return _.map(transitions, function (t) {
-    return {
-      transition: t,
-      probability: t.count / totalCount
-    };
-  });
-};
-
-JzState.prototype.getTransitionsWithProbabilities = function () {
-  return getTransitionsWithProbabilities(this.transitions);
-};
-
-var getTransitionByProbability = function (transitions) {
-  var probTotal = 0;
-  var rand = Math.random();
-  var i;
-
-  // To select a random transition given probabilities, pick a random number between 0 and 1
-  // and keep summing probabilities of transitions in order until we exceed the number
-  for (i = 0; i < transitions.length; i += 1) {
-    probTotal += transitions[i].probability;
-    if (probTotal >= rand) {
-      return transitions[i].transition;
-    }
-  }
-
-  // All transitions have probability 0
-  return null;
-};
-
-JzState.prototype.getTransitionByProbability = function () {
-  return getTransitionByProbability(this.getTransitionsWithProbabilities());
-};
+var jzaComponents = require('./lib/jzaComponents')(symbolCache);
 
 var JzA = function () {
   this.states = [];
 };
 
 JzA.prototype.addState = function (name, start, end) {
-  var state = new JzState(name, start, end);
+  var state = new jzaComponents.State(name, start, end);
   this.states.push(state);
   return state;
 };
@@ -317,47 +216,9 @@ var getInitialTransitionByProbabiblity = function (jza, symbol) {
   var transitions = _.filter(jza.getTransitionsBySymbol(symbol), function (t) {
     return t.to.isStart;
   });
+  var transitionsWithProbabilities = jzaComponents.getTransitionsWithProbabilities(transitions);
 
-  return getTransitionByProbability(getTransitionsWithProbabilities(transitions));
-};
-
-var JzAGeneratedSequence = function (transitions) {
-  this.transitions = transitions;
-};
-
-JzAGeneratedSequence.prototype.getSymbols = function () {
-  return _.pluck(this.transitions, 'symbol');
-};
-
-JzAGeneratedSequence.prototype.getChords = function (key) {
-  return _.invoke(this.getSymbols(), 'toChord', key);
-};
-
-JzAGeneratedSequence.prototype.getStates = function () {
-  return _.pluck(this.transitions, 'to');
-};
-
-JzAGeneratedSequence.prototype.getSymbolStateStrings = function () {
-  return _.map(_.zip(this.getSymbols(), this.getStates()), function (arr) {
-    return arr.join(': ');
-  });
-};
-
-JzAGeneratedSequence.prototype.getSymbolsCollapsed = function () {
-  var symbols = this.getSymbols();
-  var symbolsCollapsed = [_.first(symbols)];
-
-  _.each(_.rest(symbols), function (symbol) {
-    if (!_.last(symbolsCollapsed).eq(symbol, symbolCache)) {
-      symbolsCollapsed.push(symbol);
-    }
-  });
-
-  return symbolsCollapsed;
-};
-
-JzAGeneratedSequence.prototype.getChordsCollapsed = function (key) {
-  return _.invoke(this.getSymbolsCollapsed(), 'toChord', key);
+  return jzaComponents.getTransitionByProbability(transitionsWithProbabilities);
 };
 
 JzA.prototype.generateSequenceFromStartAndLength = function (firstSymbol, length) {
@@ -372,7 +233,7 @@ JzA.prototype.generateSequenceFromStartAndLength = function (firstSymbol, length
     transitions.push(transition);
   }
 
-  return new JzAGeneratedSequence(transitions);
+  return new jzaComponents.GeneratedSequence(transitions);
 };
 
 JzA.prototype.generateSequenceFromStartAndEnd = function (firstSymbol, lastSymbol) {
@@ -386,7 +247,7 @@ JzA.prototype.generateSequenceFromStartAndEnd = function (firstSymbol, lastSymbo
     transitions.push(transition);
   } while (!(transition.symbol.eq(lastSymbol, symbolCache) && transition.to.isEnd));
 
-  return new JzAGeneratedSequence(transitions);
+  return new jzaComponents.GeneratedSequence(transitions);
 };
 
 // Given a list of symbols, return information about the symbol that caused the analysis to fail, or null if it passes
@@ -454,7 +315,7 @@ var getProbabilitiesAndSort = function (obj, totalCount) {
 // return a map of key -> probability sorted from highest to lowest
 var makeProbabilitiyObject = function (transitions, keyFunction) {
   var obj = {};
-  var totalCount = getTotalCountForTransitions(transitions);
+  var totalCount = jzaComponents.getTotalCountForTransitions(transitions);
 
   // Sum up counts based on keyFunction, lazily so that we don't have any 0 probability keys
   _.each(transitions, function (t) {
@@ -556,7 +417,7 @@ var load = module.exports.load = function (json) {
   var jza = new JzA();
 
   jza.states = _.map(json.states, function (s) {
-    return new JzState(s.name, s.isStart, s.isEnd);
+    return new jzaComponents.State(s.name, s.isStart, s.isEnd);
   });
 
   _.each(json.transitions, function (t) {
