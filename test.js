@@ -1,4 +1,4 @@
-var jazz = require('./index');
+var jzaTools = require('./index');
 var jzaComponents = require('./lib/jzaComponents');
 
 var assert = require('assert');
@@ -25,7 +25,7 @@ var analysisShouldBeWithJza = function (jza, symbols, expected) {
 describe('JzA', function () {
   describe('General JzA', function () {
     it('should create a new state', function () {
-      var jza = jazz.jza('empty');
+      var jza = jzaTools.jza('empty');
       var s = jza.addState('state');
       assert.equal(s.name, 'state');
       assert.equal(jza.getStatesByName('state').length, 1);
@@ -34,7 +34,7 @@ describe('JzA', function () {
     });
 
     it('should create transitions', function () {
-      var jza = jazz.jza('empty');
+      var jza = jzaTools.jza('empty');
       var tonic = jza.addState('tonic');
       var subdominant = jza.addState('subdominant');
 
@@ -51,7 +51,7 @@ describe('JzA', function () {
     });
 
     it('should not create duplicate transitions', function () {
-      var jza = jazz.jza('empty');
+      var jza = jzaTools.jza('empty');
       var state1 = jza.addState('state1');
       var state2 = jza.addState('state2');
 
@@ -62,7 +62,7 @@ describe('JzA', function () {
     });
 
     it('should find transitions', function () {
-      var jza = jazz.jza('empty');
+      var jza = jzaTools.jza('empty');
       var tonic = jza.addState('tonic');
       var subdominant = jza.addState('subdominant');
       var dominant = jza.addState('subdominant');
@@ -80,7 +80,7 @@ describe('JzA', function () {
     });
 
     it('should only end in an end state', function () {
-      var jza = jazz.jza('empty');
+      var jza = jzaTools.jza('empty');
       var initial = jza.addState('initial', false, true);
       var start = jza.addState('start', true, false);
       var end = jza.addState('end', false, true);
@@ -98,7 +98,7 @@ describe('JzA', function () {
     });
 
     it('should only start in a start state', function () {
-      var jza = jazz.jza('empty');
+      var jza = jzaTools.jza('empty');
       var initial = jza.addState('initial', false, true);
       var start = jza.addState('start', true, false);
       var notStart = jza.addState('start', false, false);
@@ -117,7 +117,7 @@ describe('JzA', function () {
     });
 
     describe('when training data', function () {
-      var jza = jazz.jza('empty');
+      var jza = jzaTools.jza('empty');
       var initial = jza.addState('initial', false, false);
       var start1 = jza.addState('start1', true, false);
       var start2 = jza.addState('start2', true, false);
@@ -205,7 +205,7 @@ describe('JzA', function () {
 
       it('should serialize and load data', function () {
         json = jza.serialize();
-        jazz.load(json);
+        jzaTools.load(json);
 
         analysisShouldBeWithJza(jza, ['I', 'IV', 'V'], [
           ['start1', 'middle1', 'end1']
@@ -226,7 +226,7 @@ describe('JzA', function () {
     });
 
     describe('when training data with many paths', function () {
-      var jza = jazz.jza('empty');
+      var jza = jzaTools.jza('empty');
       var initial = jza.addState('initial', false, false);
       var start1 = jza.addState('start1', true, false);
       var start2 = jza.addState('start2', true, false);
@@ -264,7 +264,7 @@ describe('JzA', function () {
   });
 
   describe('Default JzA', function () {
-    var jza = jazz.jza();
+    var jza = jzaTools.jza();
     var analysisShouldBe = _.partial(analysisShouldBeWithJza, jza); // Locally scoped version of function with common jza
 
     it('should have primitive transitions for functional states', function () {

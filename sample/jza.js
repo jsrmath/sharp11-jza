@@ -1,8 +1,8 @@
 var _ = require('underscore');
 var s11 = require('sharp11');
-var jza = require('../index');
+var jzaTools = require('../index');
 
-var jzaAutomaton = jza.jza();
+var jza = jzaTools.jza();
 
 var romanNumerals = ['I', 'bII', 'II', 'bIII', 'III', 'IV', 'bV', 'V', 'bVI', 'VI', 'bVII', 'VII'];
 var qualities = ['m', 'M', 'x', 'ø', 'o', 's'];
@@ -24,7 +24,7 @@ var sampleList = _.map(_.range(numSamples), function () {
 });
 
 var validSamples = _.filter(sampleList, function (sample) {
-  return jzaAutomaton.validate(sample);
+  return jza.validate(sample);
 });
 
 console.log(validSamples.length / numSamples);
