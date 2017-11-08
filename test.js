@@ -76,6 +76,7 @@ describe('JzA', function () {
       assert.equal(jza.getTransitions()[0].to.name, 'subdominant');
 
       assert.equal(jza.getTransitionsBySymbol('vi').length, 2);
+      assert.equal(jza.getTransitionsByToState(tonic)[0].symbol.toString(), 'VIm');
       assert.equal(tonic.getNextStatesBySymbol('vi')[0].name, 'subdominant');
     });
 
@@ -439,6 +440,29 @@ describe('JzA', function () {
 
       failurePoint = jza.findFailurePoint(['ii', 'V', 'I']);
       assert.equal(failurePoint, null);
+    });
+  });
+
+  describe('Trained JzA', function () {
+    var jza = jzaTools.import('sample/model.json');
+
+    it('should generate an n-length sequence given a start and end symbol', function () {
+      var sequence = jza.generateNLengthSequenceWithStartAndEnd(4, 'ii', 'iii').transitions;
+
+      assert.equal(sequence.length, 4);
+      assert.equal(sequence[0].symbol.toString(), 'IIm');
+      assert.equal(sequence[3].symbol.toString(), 'IIIm');
+
+      var startState = sequence[0].to;
+      var endState = sequence[3].to;
+
+      sequence = jza.generateNLengthSequenceWithStartAndEnd(4, 'ii', 'iii', startState, endState).transitions;
+
+      assert.equal(sequence.length, 4);
+      assert.equal(sequence[0].symbol.toString(), 'IIm');
+      assert.equal(sequence[3].symbol.toString(), 'IIIm');
+      assert.equal(sequence[0].to, startState);
+      assert.equal(sequence[3].to, endState);
     });
   });
 });

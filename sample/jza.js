@@ -41,3 +41,6 @@ var jza;
 
 //// Find the most commonly generated sequences (out of n=500) given a start and end symbol
 // console.log(jza.mostCommonGeneratedSequences('I', 'I', 500).join('\n'));
+
+//// Generate a four-chord sequence from ii to iii
+// jza.generateNLengthSequenceWithStartAndEnd(4, 'ii', 'iii').print();
