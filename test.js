@@ -383,12 +383,6 @@ describe('JzA', function () {
       ]);
     });
 
-    it('should handle packed subtonic cadences', function () {
-      analysisShouldBe(['I', 'vi', 'IVm', 'I'], [
-        ['Tonic 1', 'Subdominant 6', 'Dominant 4', 'Tonic 1']
-      ]);
-    });
-
     it('should handle neighbor chords', function () {
       analysisShouldBe(['V', 'I', 'IV', 'I', 'iii'], [
         ['Dominant 5', 'IM with neighbor', 'Neighbor of IM', 'Tonic 1', 'Tonic 3'],
