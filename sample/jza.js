@@ -44,3 +44,10 @@ var jza;
 
 //// Generate a four-chord sequence from ii to iii
 // jza.generateNLengthSequenceWithStartAndEnd(4, 'ii', 'iii').print();
+
+//// Generate a 5-chord sequence and reharmonize the third chord
+// seq = jza.buildSequence();
+// seq.addN(5);
+// seq.print();
+// seq.reharmonizeAtIndex(2);
+// seq.print();

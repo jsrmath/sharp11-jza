@@ -29,6 +29,20 @@ JzA.prototype.getTransitions = function () {
     .value();
 };
 
+JzA.prototype.getInitialTransitions = function (symbol) {
+  var transitions = symbol ? this.getTransitionsBySymbol(symbol) : this.getTransitions();
+  return _.filter(transitions, function (t) {
+    return t.to.isStart;
+  });
+};
+
+JzA.prototype.getTerminalTransitions = function (symbol) {
+  var transitions = symbol ? this.getTransitionsBySymbol(symbol) : this.getTransitions();
+  return _.filter(transitions, function (t) {
+    return t.to.isEnd;
+  });
+};
+
 JzA.prototype.getTransitionsByToState = function (state) {
   return _.filter(this.getTransitions(), function (t) {
     return t.to === state;
@@ -45,6 +59,14 @@ JzA.prototype.getTransitionsByQuality = function (quality) {
   return _.filter(this.getTransitions(), function (t) {
     return t.symbol.quality === quality;
   });
+};
+
+JzA.prototype.getTransitionsByParams = function (params) {
+  return jzaComponents.getTransitionsByParams(this.getTransitions(), params);
+};
+
+JzA.prototype.getTransitionByParams = function (params) {
+  return _.first(this.getTransitionsByParams(params));
 };
 
 JzA.prototype.getStatesByName = function (name) {
@@ -218,25 +240,13 @@ JzA.prototype.trainCorpusBySongWithWrapAround = function (corpus) {
   return this.trainCorpusBySong(corpus, true);
 };
 
-var getInitialTransitions = function (jza, symbol) {
-  return _.filter(jza.getTransitionsBySymbol(symbol), function (t) {
-    return t.to.isStart;
-  });
-};
-
-var getTerminalTransitions = function (jza, symbol) {
-  return _.filter(jza.getTransitionsBySymbol(symbol), function (t) {
-    return t.to.isEnd;
-  });
-};
-
-var getInitialTransitionByProbabiblity = function (jza, symbol) {
-  var transitions = getInitialTransitions(jza, symbol);
+JzA.prototype.getInitialTransitionByProbabiblity = function (symbol) {
+  var transitions = this.getInitialTransitions(symbol);
   return jzaComponents.getTransitionByProbability(transitions);
 };
 
 JzA.prototype.generateSequenceFromStartAndLength = function (startSymbol, length) {
-  var transition = getInitialTransitionByProbabiblity(this, startSymbol);
+  var transition = this.getInitialTransitionByProbabiblity(startSymbol);
   var transitions;
   var i;
 
@@ -247,11 +257,11 @@ JzA.prototype.generateSequenceFromStartAndLength = function (startSymbol, length
     transitions.push(transition);
   }
 
-  return new jzaComponents.GeneratedSequence(transitions);
+  return new jzaComponents.Sequence(this, transitions);
 };
 
 JzA.prototype.generateSequenceFromStartAndEnd = function (startSymbol, endSymbol) {
-  var transition = getInitialTransitionByProbabiblity(this, startSymbol);
+  var transition = this.getInitialTransitionByProbabiblity(startSymbol);
   var transitions = [transition];
 
   if (!transition) return null; // Can't generate sequence starting with particular symbol
@@ -261,7 +271,7 @@ JzA.prototype.generateSequenceFromStartAndEnd = function (startSymbol, endSymbol
     transitions.push(transition);
   } while (!(transition.symbol.eq(endSymbol, symbolCache) && transition.to.isEnd));
 
-  return new jzaComponents.GeneratedSequence(transitions);
+  return new jzaComponents.Sequence(this, transitions);
 };
 
 var getNLengthSequencesWithStartAndEnd = function (jza, n, startSymbol, endSymbol, startState, endState) {
@@ -300,19 +310,88 @@ var getNLengthSequencesWithStartAndEnd = function (jza, n, startSymbol, endSymbo
   return removeDeadEnds(paths);
 };
 
-JzA.prototype.generateNLengthSequenceWithStartAndEnd = function (n, startSymbol, endSymbol, startState, endState) {
-  var paths = getNLengthSequencesWithStartAndEnd(this, n, startSymbol, endSymbol, startState, endState);
-
+var generateSequenceFromPaths = function (paths, enforceUniqueness) {
   var sequence = _.reduce(paths, function (transitions, timeStep) {
     var lastTransition = _.last(transitions);
     var candidateTransitions = _.filter(timeStep, function (t) {
-      return lastTransition ? lastTransition.to === t.from && !lastTransition.symbol.eq(t.symbol) : true;
+      if (!lastTransition) return true;
+
+      return lastTransition.to === t.from && (!enforceUniqueness || !lastTransition.symbol.eq(t.symbol));
     });
 
     return transitions.concat([jzaComponents.getTransitionByProbability(candidateTransitions)]);
   }, []);
 
-  return new jzaComponents.GeneratedSequence(sequence);
+  return new jzaComponents.Sequence(this, sequence);
+};
+
+// Given a transition, return a list of possible sequences with the same start and end
+// Sequences will be "elaborations", meaning that the only end state will be the last one
+// This will generate ii-V-I's, unpacked progressions, neighbor chords, etc.
+// For efficiency, it will only return elaborations of size 2 and 3
+var getElaborationsForTransition = function (jza, transition) {
+  var startState = transition.from;
+  var endState = transition.to;
+  var startTransitions = _.filter(jza.getTransitions(), function (t) {
+    return t.from === startState && !t.to.isEnd && t.to !== endState;
+  });
+  var endTransitions = _.filter(jza.getTransitions(), function (t) {
+    return t.to === endState && !t.from.isEnd && t.from !== startState;
+  });
+  var size2Paths = removeDeadEnds([startTransitions, endTransitions]);
+  var intermediateStartStates = _.chain(startTransitions)
+    .pluck('to')
+    .uniq()
+    .value();
+  var intermediateEndStates = _.chain(endTransitions)
+    .pluck('from')
+    .uniq()
+    .value();
+  var intermediateTransitions = _.filter(jza.getTransitions(), function (t) {
+    return !t.from.isEnd && !t.to.isEnd && _.contains(intermediateStartStates, t.from) && _.contains(intermediateEndStates, t.to);
+  });
+  var size3Paths = removeDeadEnds([startTransitions, intermediateTransitions, endTransitions]);
+
+  // Merge size 2 and size 3 paths
+  return [
+    _.uniq(size2Paths[0].concat(size3Paths[0])),
+    _.uniq(size2Paths[1].concat(size3Paths[1])),
+    size3Paths[2]
+  ];
+};
+
+var probabilisticallyElaborateTransition = function (jza, transition, mustElaborate) {
+  var elaborations = getElaborationsForTransition(jza, transition);
+  var candidateTransitions;
+  var sequence = [];
+  var i;
+
+  var sequenceCanHaveNextTransition = function (sequence, t) {
+    return t.from === _.last(sequence).to;
+  };
+
+  if (!mustElaborate) elaborations[0].push(transition);
+
+  sequence[0] = jzaComponents.getTransitionByProbability(elaborations[0]);
+  for (i = 1; _.last(sequence).to !== transition.to; i += 1) {
+    candidateTransitions = _.filter(elaborations[i], _.partial(sequenceCanHaveNextTransition, sequence));
+    sequence.push(jzaComponents.getTransitionByProbability(candidateTransitions));
+  }
+
+  return sequence;
+};
+
+JzA.prototype.generateNLengthSequenceWithStartAndEnd = function (n, startSymbol, endSymbol, startState, endState) {
+  var paths = getNLengthSequencesWithStartAndEnd(this, n, startSymbol, endSymbol, startState, endState);
+  return generateSequenceFromPaths(paths, true);
+};
+
+// Given two transitions that do not connect, return a sequence that connects them
+JzA.prototype.generateConnectingTransitions = function (t1, t2) {
+  var paths = getNLengthSequencesWithStartAndEnd(this, 3, t1.symbol, t2.symbol, t1.to, t2.to).slice(1);
+  var transitions = generateSequenceFromPaths(paths, false).transitions;
+  var elaboration = probabilisticallyElaborateTransition(this, transitions[0]);
+  return new jzaComponents.Sequence(this, elaboration.concat(transitions[1]));
 };
 
 // Given a list of symbols, return information about the symbol that caused the analysis to fail, or null if it passes
@@ -448,7 +527,7 @@ JzA.prototype.getTransitionProbabilitiesGivenStateRegex = function (regex, keyTy
   return makeProbabilitiyObject(transitions, keyFunction);
 };
 
-JzA.prototype.mostCommonGeneratedSequences = function (start, end, count) {
+JzA.prototype.mostCommonSequences = function (start, end, count) {
   var jza = this;
   return _.chain(count)
     .range()
@@ -468,6 +547,11 @@ JzA.prototype.mostCommonGeneratedSequences = function (start, end, count) {
       return x[0] + ': ' + x[1];
     })
     .value();
+};
+
+JzA.prototype.buildSequence = function (startSymbol) {
+  var transitions = startSymbol ? [this.getInitialTransitionByProbabiblity(startSymbol)] : [];
+  return new jzaComponents.Sequence(this, transitions);
 };
 
 module.exports.jza = function (type) {
