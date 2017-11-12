@@ -27,11 +27,6 @@ var jza;
 //// Get transition probabilities from particular states given a state name regex
 // console.log(jza.getTransitionProbabilitiesGivenStateRegex(/^Subdominant b6/));
 
-//// Generate sequences that start and end with particular symbols
-// _.times(20, function () {
-//   jza.generateSequenceFromStartAndEnd('I', 'I').print();
-// });
-
 //// Find songs in the corpus that contain a given sequence
 // console.log(iRbCorpus.findSongTitlesWithSequence(['bIIIM', 'bVIx', 'V']));
 

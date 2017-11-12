@@ -1,5 +1,4 @@
 var jzaTools = require('./index');
-var jzaComponents = require('./lib/jzaComponents')({});
 
 var assert = require('assert');
 var _ = require('underscore');
@@ -455,7 +454,7 @@ describe('JzA', function () {
         transitions.push(nextTransition);
       }
 
-      return new jzaComponents.Sequence(jza, transitions);
+      return new jzaTools.Sequence(jza, transitions);
     };
 
     var ensureSequence = function (seq, arr) {
@@ -541,11 +540,19 @@ describe('JzA', function () {
       assert.equal(seq.length(), 3);
     });
 
+    it('should keep adding chords to a sequence until a particular transition is reached', function () {
+      var seq = jza.buildSequence('I');
+
+      seq.addUntilSymbol('Vx');
+      assert.equal(seq.first().symbol.toString(), 'IM');
+      assert.equal(seq.last().symbol.toString(), 'Vx');
+    });
+
     it('should remove a chord from the sequence', function () {
       var seq = jza.buildSequence('ii');
       seq.add();
       
-      assert(seq.remove().from); // Make sure it's a Transition
+      assert(seq.remove() instanceof jzaTools.Transition);
 
       assert.equal(seq.length(), 1);
       assert.equal(seq.index(0).symbol.toString(), 'IIm');

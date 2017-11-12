@@ -5,15 +5,17 @@ var jsonfile = require('jsonfile');
 // Keep a mapping of Mehegan strings to corresponding Mehegan objects so that we don't waste time creating new ones
 var symbolCache = {};
 
-var jzaBuilder = require('./lib/jzaBuilder')(symbolCache);
-var jzaComponents = require('./lib/jzaComponents')(symbolCache);
+var util = require('./lib/util')(symbolCache);
+var State = require('./lib/State')(symbolCache);
+var Transition = require('./lib/Transition');
+var Sequence = require('./lib/Sequence')(symbolCache);
 
 var JzA = function () {
   this.states = [];
 };
 
 JzA.prototype.addState = function (name, start, end) {
-  var state = new jzaComponents.State(name, start, end);
+  var state = new State(name, start, end);
   this.states.push(state);
   return state;
 };
@@ -62,7 +64,7 @@ JzA.prototype.getTransitionsByQuality = function (quality) {
 };
 
 JzA.prototype.getTransitionsByParams = function (params) {
-  return jzaComponents.getTransitionsByParams(this.getTransitions(), params);
+  return util.getTransitionsByParams(this.getTransitions(), params);
 };
 
 JzA.prototype.getTransitionByParams = function (params) {
@@ -242,36 +244,7 @@ JzA.prototype.trainCorpusBySongWithWrapAround = function (corpus) {
 
 JzA.prototype.getInitialTransitionByProbabiblity = function (symbol) {
   var transitions = this.getInitialTransitions(symbol);
-  return jzaComponents.getTransitionByProbability(transitions);
-};
-
-JzA.prototype.generateSequenceFromStartAndLength = function (startSymbol, length) {
-  var transition = this.getInitialTransitionByProbabiblity(startSymbol);
-  var transitions;
-  var i;
-
-  if (!transition) return null; // Can't generate sequence starting with particular symbol
-
-  for (i = 0; i < length || !transition.to.isEnd; i += 1) {
-    transition = transition.to.getTransitionByProbability();
-    transitions.push(transition);
-  }
-
-  return new jzaComponents.Sequence(this, transitions);
-};
-
-JzA.prototype.generateSequenceFromStartAndEnd = function (startSymbol, endSymbol) {
-  var transition = this.getInitialTransitionByProbabiblity(startSymbol);
-  var transitions = [transition];
-
-  if (!transition) return null; // Can't generate sequence starting with particular symbol
-
-  do {
-    transition = transition.to.getTransitionByProbability();
-    transitions.push(transition);
-  } while (!(transition.symbol.eq(endSymbol, symbolCache) && transition.to.isEnd));
-
-  return new jzaComponents.Sequence(this, transitions);
+  return util.getTransitionByProbability(transitions);
 };
 
 var getNLengthSequencesWithStartAndEnd = function (jza, n, startSymbol, endSymbol, startState, endState) {
@@ -319,10 +292,10 @@ var generateSequenceFromPaths = function (paths, enforceUniqueness) {
       return lastTransition.to === t.from && (!enforceUniqueness || !lastTransition.symbol.eq(t.symbol));
     });
 
-    return transitions.concat([jzaComponents.getTransitionByProbability(candidateTransitions)]);
+    return transitions.concat([util.getTransitionByProbability(candidateTransitions)]);
   }, []);
 
-  return new jzaComponents.Sequence(this, sequence);
+  return new Sequence(this, sequence);
 };
 
 // Given a transition, return a list of possible sequences with the same start and end
@@ -372,10 +345,10 @@ var probabilisticallyElaborateTransition = function (jza, transition, mustElabor
 
   if (!mustElaborate) elaborations[0].push(transition);
 
-  sequence[0] = jzaComponents.getTransitionByProbability(elaborations[0]);
+  sequence[0] = util.getTransitionByProbability(elaborations[0]);
   for (i = 1; _.last(sequence).to !== transition.to; i += 1) {
     candidateTransitions = _.filter(elaborations[i], _.partial(sequenceCanHaveNextTransition, sequence));
-    sequence.push(jzaComponents.getTransitionByProbability(candidateTransitions));
+    sequence.push(util.getTransitionByProbability(candidateTransitions));
   }
 
   return sequence;
@@ -391,7 +364,7 @@ JzA.prototype.generateConnectingTransitions = function (t1, t2) {
   var paths = getNLengthSequencesWithStartAndEnd(this, 3, t1.symbol, t2.symbol, t1.to, t2.to).slice(1);
   var transitions = generateSequenceFromPaths(paths, false).transitions;
   var elaboration = probabilisticallyElaborateTransition(this, transitions[0]);
-  return new jzaComponents.Sequence(this, elaboration.concat(transitions[1]));
+  return new Sequence(this, elaboration.concat(transitions[1]));
 };
 
 // Given a list of symbols, return information about the symbol that caused the analysis to fail, or null if it passes
@@ -459,7 +432,7 @@ var getProbabilitiesAndSort = function (obj, totalCount) {
 // return a map of key -> probability sorted from highest to lowest
 var makeProbabilitiyObject = function (transitions, keyFunction) {
   var obj = {};
-  var totalCount = jzaComponents.getTotalCountForTransitions(transitions);
+  var totalCount = util.getTotalCountForTransitions(transitions);
 
   // Sum up counts based on keyFunction, lazily so that we don't have any 0 probability keys
   _.each(transitions, function (t) {
@@ -551,14 +524,14 @@ JzA.prototype.mostCommonSequences = function (start, end, count) {
 
 JzA.prototype.buildSequence = function (startSymbol) {
   var transitions = startSymbol ? [this.getInitialTransitionByProbabiblity(startSymbol)] : [];
-  return new jzaComponents.Sequence(this, transitions);
+  return new Sequence(this, transitions);
 };
 
 module.exports.jza = function (type) {
   var jza = new JzA();
 
   if (type !== 'empty') {
-    jzaBuilder.constructDefaultJzA(jza);
+    util.constructDefaultJzA(jza);
   }
 
   return jza;
@@ -588,7 +561,7 @@ var load = module.exports.load = function (json) {
   var jza = new JzA();
 
   jza.states = _.map(json.states, function (s) {
-    return new jzaComponents.State(s.name, s.isStart, s.isEnd);
+    return new State(s.name, s.isStart, s.isEnd);
   });
 
   _.each(json.transitions, function (t) {
@@ -610,3 +583,9 @@ module.exports.export = function (jza, filename) {
 module.exports.import = function (filename) {
   return load(jsonfile.readFileSync(filename));
 };
+
+module.exports.JzA = JzA;
+module.exports.State = State;
+module.exports.Transition = Transition;
+module.exports.Sequence = Sequence;
+module.exports.util = util;
