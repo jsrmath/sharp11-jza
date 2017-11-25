@@ -464,10 +464,6 @@ describe('JzA', function () {
         transition = seq.index(i);
         assert(transition.symbol.eq(arr[2 * i]));
         assert(_.contains(jza.getStatesByName(arr[2 * i + 1]), transition.to));
-
-        if (i > 0) {
-          assert(_.contains(jza.getStatesByName(arr[2 * i - 1]), transition.from));
-        }
       }
     };
 
@@ -501,27 +497,24 @@ describe('JzA', function () {
     });
 
     it('should add a chord to the sequence', function () {
-      var seq = jza.buildSequence('ii');
-      seq.add(true);
+      var seq = jza.buildSequence('ii').add(true);
 
       assert.equal(seq.length(), 2);
       assert.equal(seq.index(0).to, seq.index(1).from);
 
-      seq.add();
+      seq = seq.add();
 
       assert.equal(seq.length(), 3);
       assert.equal(seq.index(1).to, seq.index(2).from);
       assert(!seq.index(1).symbol.eq(seq.index(2).symbol));
 
-      seq = jza.buildSequence();
-      seq.add();
+      seq = jza.buildSequence().add();
       assert.equal(seq.length(), 1);
     });
 
     it('should add n chords to the sequence', function () {
-      var seq = jza.buildSequence('ii');
+      var seq = jza.buildSequence('ii').addN(10);
       var i;
-      seq.addN(10);
 
       assert.equal(seq.length(), 11);
 
@@ -536,52 +529,35 @@ describe('JzA', function () {
       var initialTransition = jza.getTransitionsByToState(IWithNeightborState)[0];
       seq.transitions = [initialTransition];
 
-      seq.addFull();
+      seq = seq.addFull();
       assert.equal(seq.length(), 3);
     });
 
     it('should keep adding chords to a sequence until a particular transition is reached', function () {
-      var seq = jza.buildSequence('I');
+      var seq = jza.buildSequence('I').addUntilSymbol('Vx');
 
-      seq.addUntilSymbol('Vx');
       assert.equal(seq.first().symbol.toString(), 'IM');
       assert.equal(seq.last().symbol.toString(), 'Vx');
     });
 
     it('should remove a chord from the sequence', function () {
-      var seq = jza.buildSequence('ii');
-      seq.add();
-      
-      assert(seq.remove() instanceof jzaTools.Transition);
+      var seq = jza.buildSequence('ii').add().remove();
 
       assert.equal(seq.length(), 1);
       assert.equal(seq.index(0).symbol.toString(), 'IIm');
     });
 
     it('should remove n chords from the sequence', function () {
-      var seq = jza.buildSequence('ii');
-      seq.addN(10);
-      seq.removeN(5);
+      var seq = jza.buildSequence('ii').addN(10).removeN(5);
 
       assert.equal(seq.length(), 6);
     });
 
     it('should regenerate the last chord in the sequence', function () {
-      var seq = jza.buildSequence('ii');
-      var oldSymbol = seq.add().symbol;
+      var seq = jza.buildSequence('ii').add();
+      var oldSymbol = seq.last().symbol;
 
-      seq.changeLast();
-
-      assert.equal(seq.length(), 2);
-      assert(!seq.index(1).symbol.eq(seq.first().symbol));
-      assert(!seq.index(1).symbol.eq(oldSymbol));
-    });
-
-    it('should regenerate the last chord in the sequence', function () {
-      var seq = jza.buildSequence('ii');
-      var oldSymbol = seq.add().symbol;
-
-      seq.changeLast();
+      seq = seq.changeLast();
 
       assert.equal(seq.length(), 2);
       assert(!seq.index(1).symbol.eq(seq.first().symbol));
@@ -590,64 +566,54 @@ describe('JzA', function () {
 
     describe('#splice', function () {
       it('should splice the sequence at the beginning', function () {
-        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']);
-        seq.splice(0);
+        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']).splice(0);
         ensureSequence(seq, ['ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']);
       });
 
       it('should splice the sequence at the end', function () {
-        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']);
-        seq.splice(3);
+        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']).splice(3);
         ensureSequence(seq, ['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx']);
       });
 
       it('should splice the sequence at the middle if possible', function () {
-        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']);
-        seq.splice(2);
+        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']).splice(2);
         ensureSequence(seq, ['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'Vx', 'Dominant 5']);
       });
 
       it('should not splice the sequence at the middle if not possible', function () {
-        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']);
-        seq.splice(1);
+        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']).splice(1);
         ensureSequence(seq, ['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']);
       });
     });
 
     describe('#makeUnique', function () {
       it('should leave a unique sequence untouched', function () {
-        var seq = createSequence(['VIx', 'Tonic 6', 'IIx', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']);
-        seq.makeUnique();
+        var seq = createSequence(['VIx', 'Tonic 6', 'IIx', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']).makeUnique();
         ensureSequence(seq, ['VIx', 'Tonic 6', 'IIx', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']);
       });
 
       it('should perform a splice when the first transition can be spliced', function () {
-        var seq = createSequence(['VIx', 'Tonic 6', 'I', 'Tonic 1', 'I', 'Tonic 1', 'IV', 'Subdominant 4']);
-        seq.makeUnique();
+        var seq = createSequence(['VIx', 'Tonic 6', 'I', 'Tonic 1', 'I', 'Tonic 1', 'IV', 'Subdominant 4']).makeUnique();
         ensureSequence(seq, ['VIx', 'Tonic 6', 'I', 'Tonic 1', 'IV', 'Subdominant 4']);
       });
 
       it('should perform a splice when the second transition can be spliced', function () {
-        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']);
-        seq.makeUnique();
+        var seq = createSequence(['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'ii', 'Unpacked Vx', 'Vx', 'Dominant 5']).makeUnique();
         ensureSequence(seq, ['VIx', 'Tonic 6', 'ii', 'Subdominant 2', 'Vx', 'Dominant 5']);
       });
 
       it('should splice multiple duplicates', function () {
-        var seq = createSequence(['VIx', 'Tonic 6', 'I', 'Tonic 1', 'I', 'Tonic 1', 'I', 'Tonic 1', 'IV', 'Subdominant 4']);
-        seq.makeUnique();
+        var seq = createSequence(['VIx', 'Tonic 6', 'I', 'Tonic 1', 'I', 'Tonic 1', 'I', 'Tonic 1', 'IV', 'Subdominant 4']).makeUnique();
         ensureSequence(seq, ['VIx', 'Tonic 6', 'I', 'Tonic 1', 'IV', 'Subdominant 4']);
       });
 
       it('should splice from the beginning', function () {
-        var seq = createSequence(['I', 'Tonic 1', 'I', 'Tonic 1', 'IV', 'Subdominant 4']);
-        seq.makeUnique();
+        var seq = createSequence(['I', 'Tonic 1', 'I', 'Tonic 1', 'IV', 'Subdominant 4']).makeUnique();
         ensureSequence(seq, ['I', 'Tonic 1', 'IV', 'Subdominant 4']);
       });
 
       it('should splice from the end', function () {
-        var seq = createSequence(['I', 'Tonic 1', 'IV', 'Subdominant 4', 'IV', 'Subdominant 4']);
-        seq.makeUnique();
+        var seq = createSequence(['I', 'Tonic 1', 'IV', 'Subdominant 4', 'IV', 'Subdominant 4']).makeUnique();
         ensureSequence(seq, ['I', 'Tonic 1', 'IV', 'Subdominant 4']);
       });
     });
