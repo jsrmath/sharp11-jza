@@ -617,5 +617,29 @@ describe('JzA', function () {
         ensureSequence(seq, ['I', 'Tonic 1', 'IV', 'Subdominant 4']);
       });
     });
+
+    // Use 0 probability transitions at reharmonization points to ensure that the reharmonization is different
+    describe('#reharmonizeAtIndex', function () {
+      it('should reharmonize a phrase from the beginning', function () {
+        var seq = createSequence(['iii', 'ii / IIm', 'VIx', 'V / IIm', 'ii', 'Subdominant 2', 'VIM', 'Subdominant 6']).reharmonizeAtIndex(2);
+        assert(seq.last().symbol.eq('VIM'));
+        assert(!seq.index(seq.length() - 2).symbol.eq('ii'));
+      });
+
+      it('should reharmonize a phrase from the end', function () {
+        var seq = createSequence(['I', 'Tonic 1', 'bVIx', 'Subdominant b6', 'bVIIs', 'ii / IIm', 'VIx', 'V / IIm', 'ii', 'Subdominant 2']).reharmonizeAtIndex(2);
+        assert(seq.index(0).symbol.eq('I'));
+        assert(seq.index(1).symbol.eq('bVIx'));
+        assert(!seq.index(2).symbol.eq('bVIIs'));
+      });
+
+      it('should reharmonize a phrase in the middle', function () {
+        var seq = createSequence(['I', 'Tonic 1', 'bVIx', 'Subdominant b6', 'iii', 'Unpacked VIx', 'VIx', 'Subdominant 6', 'IIx', 'Subdominant 2']).reharmonizeAtIndex(2);
+        assert(seq.index(0).symbol.eq('I'));
+        assert(seq.index(1).symbol.eq('bVIx'));
+        assert(!seq.index(2).symbol.eq('iii'));
+        assert(seq.last().symbol.eq('IIx'));
+      });
+    });
   });
 });
