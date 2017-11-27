@@ -26,10 +26,10 @@
   "dependencies": {
     "jsonfile": "^4.0.0",
     "sharp11": "^2.0.1",
-    "sharp11-irb": "^1.0.0",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
-    "mocha": "^4.0.1"
+    "mocha": "^4.0.1",
+    "sharp11-irb": "^1.0.0"
   }
 }
