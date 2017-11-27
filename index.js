@@ -541,17 +541,17 @@ JzA.prototype.serialize = function () {
   var jza = this;
 
   var states = _.map(jza.states, function (s) {
-    return _.pick(s, 'name', 'isStart', 'isEnd');
+    return [s.name, (s.isStart << 1) + s.isEnd];
   });
 
   // Keep track of transitions, but store states as indices instead of objects
   var transitions = _.map(jza.getTransitions(), function (t) {
-    return {
-      from: _.indexOf(jza.states, t.from),
-      to: _.indexOf(jza.states, t.to),
-      symbol: _.pick(t.symbol, 'numeral', 'quality'),
-      count: t.count
-    };
+    return [
+      _.indexOf(jza.states, t.from),
+      _.indexOf(jza.states, t.to),
+      [t.symbol.numeral, t.symbol.quality],
+      t.count
+    ];
   });
 
   return {states: states, transitions: transitions};
@@ -561,14 +561,14 @@ var load = module.exports.load = function (json) {
   var jza = new JzA();
 
   jza.states = _.map(json.states, function (s) {
-    return new State(s.name, s.isStart, s.isEnd);
+    return new State(s[0], s[1] & 2, s[1] & 1);
   });
 
   _.each(json.transitions, function (t) {
-    var symbol = new s11.mehegan.Mehegan(t.symbol.numeral, t.symbol.quality);
-    var from = jza.states[t.from];
-    var to = jza.states[t.to];
-    var count = t.count;
+    var symbol = new s11.mehegan.Mehegan(t[2][0], t[2][1]);
+    var from = jza.states[t[0]];
+    var to = jza.states[t[1]];
+    var count = t[3];
 
     jza.addTransition(symbol, from, to, count);
   });
