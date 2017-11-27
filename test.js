@@ -545,6 +545,8 @@ describe('JzA', function () {
 
       assert.equal(seq.length(), 1);
       assert.equal(seq.index(0).symbol.toString(), 'IIm');
+
+      assert.equal(seq.remove().length(), 0);
     });
 
     it('should remove n chords from the sequence', function () {
